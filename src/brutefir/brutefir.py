@@ -108,37 +108,62 @@ class CoeffSet:
 
 class BruteFIR:
     def __init__(self, path=None, host=None, port=None):
-        if path is not None:
-            self._socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-            self._socket.connect(path)
-        elif host is not None and port is not None:
-            self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self._socket.connect((host, port))
-        else:
+        if (path is None) and (host is None or port is None):
             raise RuntimeError("must specify either path or host+port")
+        if (path is not None) and (host is not None or port is not None):
+            raise RuntimeError("cannot specify both path and host+port")
 
-        self._expect = fdpexpect.fdspawn(self._socket, timeout=10)
-        self._expect.expect(">")
+        if path is not None:
+            self._addr = path
+            self._af = socket.AF_UNIX
+        else:
+            self._addr = (host, port)
+            self._af = socket.AF_INET
+
+        self._socket = None
+        self._expect = None
+
+        self._reconnect()
         self._update_all()
+
+    def _reconnect(self):
+        if self._expect is not None:
+            self._expect.close()
+
+        del self._socket
+        self._socket = socket.socket(self._af, socket.SOCK_STREAM)
+        self._socket.connect(self._addr)
+
+        self._expect = fdpexpect.fdspawn(self._socket, timeout=2)
+        self._expect.expect(">")
+
+    def _run_cmd_get_output(self, cmd):
+        retries = 5
+        while retries > 0:
+            retries -= 1
+            try:
+                self._expect.sendline(cmd)
+                self._expect.expect(">")
+                return self._expect.before.decode("ascii")
+            except:
+                if retries == 0:
+                    raise
+                self._reconnect()
+
+    def _update(self, cmd, cls):
+        s = self._run_cmd_get_output(cmd)
+        return cls.parse(s)
+
+    def _run_command(self, cmd):
+        output = self._run_cmd_get_output(cmd)
+        if output != " ":
+            raise RuntimeError(output)
 
     def _update_all(self):
         self._filters = self._update("lf", Filter)
         self._inputs = self._update("li", InOut)
         self._outputs = self._update("lo", InOut)
         self._coeff_sets = self._update("lc", CoeffSet)
-
-    def _update(self, cmd, cls):
-        self._expect.sendline(cmd)
-        self._expect.expect(">")
-        s = self._expect.before.decode("ascii")
-        return cls.parse(s)
-
-    def _run_command(self, cmd):
-        self._expect.sendline(cmd)
-        self._expect.expect(">")
-        err = self._expect.before.decode("ascii")
-        if err != " ":
-            raise RuntimeError(err)
 
     def graph(self):
         """
