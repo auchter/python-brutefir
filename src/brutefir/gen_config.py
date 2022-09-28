@@ -44,6 +44,7 @@ def validate_config(c, config_path=None):
             vol.Required("path"): vol.Any(vol.Equal("dirac pulse"), is_path),
             vol.Optional("rate"): int,
             vol.Optional("format"): vol.In(supported_formats),
+            vol.Optional("attenuation"): float,
         }
     )
 
@@ -116,6 +117,7 @@ def load_brutefir_coeffs(config):
                 "path": coeff["path"],
                 "data": data,
                 "rate": rate,
+                "attenuation": coeff.get("attenuation", 0.0),
             }
         )
 
@@ -167,6 +169,7 @@ def gen_brutefir_coeff(config, coeff, outdir):
             filename: "{filename}";
             format: "S16_LE";
             blocks: -1;
+            attenuation: {coeff['attenuation']};
         }};
         """
 
