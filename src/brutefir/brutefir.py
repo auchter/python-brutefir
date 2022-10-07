@@ -106,6 +106,20 @@ class CoeffSet:
         return [CoeffSet(*x) for x in re.findall(pattern, s)]
 
 
+class PeakInfo:
+    def __init__(self, index, samples, max_dB):
+        self.index = int(index)
+        self.samples = int(samples)
+        self.max_dB = float(max_dB)
+
+    def __repr__(self):
+        return f'PeakInfo(index={self.index}, samples={self.samples}, max_dB={self.max_dB})'
+
+    def parse(s):
+        pattern = re.compile(r'\s*(\d+)\/(\d+)\/([+-]?(?(?Inf)|(?\d+\\.\d+))')
+        return [PeakInfo(*x) for x in re.findall(pattern, s)]
+
+
 class BruteFIR:
     def __init__(self, path=None, host=None, port=None):
         if (path is None) and (host is None or port is None):
@@ -332,3 +346,10 @@ class BruteFIR:
 
     def get_filters(self):
         return [f.name for f in self._filters]
+
+    def get_peak_info(self):
+        peaks = self._update("ppk", PeakInfo)
+        return [p.max_dB for p in peaks]
+
+    def reset_peak_info(self):
+        self._run_command("rpk")
