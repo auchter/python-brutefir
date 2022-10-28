@@ -58,10 +58,14 @@ class Filter:
 
     def parse(s):
         filters = re.findall(r'\s*(\d+):\s+"([^"]+)"', s)
-        coeffs = re.findall(r"\s*coeff set: (\d+)", s)
+        coeffs = re.findall(r"\s*coeff set: (-?\d+)", s)
         inputs = re.findall(r"\s*from inputs:\s*(.*)", s)
         outputs = re.findall(r"\s*to outputs:\s*(.*)", s)
         inout_pat = re.compile(r"\s*(\d+)/([0-9\-\.]+)(/-1)?\s*")
+
+        assert len(filters) == len(coeffs)
+        assert len(filters) == len(inputs)
+        assert len(filters) == len(outputs)
 
         ret = []
         for (f, c, i, o) in zip(filters, coeffs, inputs, outputs):
