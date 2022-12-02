@@ -138,7 +138,7 @@ def resample_brutefir_coeffs(config, coeffs):
             continue
 
         coeff["data"] = signal.resample_poly(
-            coeff["data"].astype('float64'), fs, coeff["rate"], window="hanning"
+            coeff["data"].astype('float64'), fs, coeff["rate"], window="hann"
         )
         coeff["data"] = coeff["data"].astype(TYPE_S16LE)  # TODO
         coeff["rate"] = fs
